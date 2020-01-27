@@ -40,7 +40,6 @@ class Componentes
 
         if (!is_string($view)) {
             throw new \Exception('Invalid view argument.');
-            ;
         }
 
         if (Str::endsWith($view, '*')) {
