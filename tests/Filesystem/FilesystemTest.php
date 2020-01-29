@@ -19,8 +19,10 @@ class FilesystemTest extends TestCase
     {
         $filesystem = new Filesystem();
 
+        $expectedPath = realpath(__DIR__ . '/../../src/Filesystem');
+
         $this->assertEquals(
-            '/home/casa/projects/php-ui-elements/src/Filesystem',
+            $expectedPath,
             $filesystem->getRootPath()
         );
     }
@@ -29,8 +31,10 @@ class FilesystemTest extends TestCase
     {
         $filesystem = new Filesystem();
 
+        $expectedPath = realpath(__DIR__ . '/../../src/Filesystem');
+
         $this->assertEquals(
-            '/home/casa/projects/php-ui-elements/src/Filesystem',
+            $expectedPath,
             $filesystem->getRootPath()
         );
 
