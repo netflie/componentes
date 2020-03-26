@@ -20,10 +20,11 @@ class CompilerTest extends TestCase
         $compiler = new Compiler($componentes, $this->getFilesystem());
 
 
-        $viewContents = '<html><my-alert type="error" message="I\'m an Alert" /></html>';
+        $viewContents = '<html><my-alert class="red" message="I\'m an Alert" /></html>';
         $compiledContents = $compiler->compile($viewContents);
 
-        $this->assertSame('<html><div class="error">I\'m an Alert</div></html>', $compiledContents);
+        $compiledContents = preg_replace('/\s+/', '', $compiledContents);
+        $this->assertSame("<html><div class='bg-red-100 border-l-4 border-red-500 text-red-700 p-4' role='alert'><p>I'm an Alert</p></div></html>", $compiledContents);
     }
 
     public function testCompilerWithOpeningAndClosingTags()
@@ -36,10 +37,11 @@ class CompilerTest extends TestCase
         $compiler = new Compiler($componentes, $this->getFilesystem());
 
 
-        $viewContents = '<html><my-alert type="error" message="I\'m an Alert"></my-alert></html>';
+        $viewContents = '<html><my-alert class="orange" message="I\'m an Alert"></my-alert></html>';
         $compiledContents = $compiler->compile($viewContents);
+        $compiledContents = preg_replace('/\s\s+/', '', $compiledContents);
 
-        $this->assertSame('<html><div class="error">I\'m an Alert</div></html>', $compiledContents);
+        $this->assertSame("<html><div class='bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4' role='alert'><p>I'm an Alert</p></div></html>", $compiledContents);
     }
 
     protected function getFilesystem(): Filesystem
