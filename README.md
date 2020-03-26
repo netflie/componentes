@@ -106,6 +106,29 @@ $ouput_html = $compiler->compile($input_html);
 # Disclaimer
 This is a beta version. Please, all issues and improvements are welcome!
 
+
+# Demo
+
+![Demo alert](/demo/sample/demo-app.png)
+
+
+To run and view a demo sample you should firts build the docker imagen an then run it.
+
+```bash
+$ docker-compose build
+$ docker-compose up
+```
+
+
+Or with `make`
+
+```bash
+$ make
+```
+
+Then open [http://localhost](http://localhost)
+
+
 # In progress
 
 - Components with children
