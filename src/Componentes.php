@@ -2,123 +2,78 @@
 
 namespace Netflie\Componentes;
 
-use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
-use Symfony\Component\Finder\SplFileInfo;
-use Netflie\Componentes\Filesystem\Directory;
-use Netflie\Componentes\Filesystem\Filesystem;
-use Netflie\Componentes\Filesystem\View;
+use Illuminate\Container\Container;
+use Illuminate\Contracts\View\Factory as ViewFactoryContract;
+use Illuminate\Filesystem\Filesystem;
+use Netflie\Componentes\Provider\ServiceProvider;
 
 class Componentes
 {
-    private $filesystem;
-    private $registeredComponents = [];
+    /**
+     * @var Illuminate\Container\Container
+     */
+    protected $app;
+
+    public function __construct(Filesystem $files, string $viewPath)
+    {
+        $cachePath = $viewPath . '/cache';
+
+        $this->app = Container::getInstance();
+        $this->app->files = $files;
+        $this->app->config = [
+            'view.paths' => [$viewPath, $cachePath],
+            'view.compiled' => $cachePath,
+        ];
+
+        (new ServiceProvider($this->app))->register();
+    }
 
     /**
      * Creates a new Componentes.
      *
      * @return static
      */
-    public static function create()
+    public static function create(string $viewPath)
     {
-        return new static();
-    }
-
-    public function component($view, string $tag = ''): ?Component
-    {
-        if (is_iterable($view)) {
-            $this->registerViews($view);
-
-            return null;
-        }
-
-        if ($view instanceof Component) {
-            $this->registeredComponents[] = $view;
-
-            return $view;
-        }
-
-        if (!is_string($view)) {
-            throw new \Exception('Invalid view argument.');
-        }
-
-        if (Str::endsWith($view, '*')) {
-            $this->registerComponents($view);
-            return null;
-        }
-
-        if (!$this->viewExists($view)) {
-            throw new \Exception("The view {$view} doesn't exist.");
-        }
-
-        $component = new Component($view, $tag);
-
-        $this->registeredComponents[] = $component;
-
-        return $component;
+        return new static(new Filesystem(), $viewPath);
     }
 
     /**
-     * @return \Netflie\Componentes\Component[]
-     */
-    public function registeredComponents(): array
-    {
-        return (new Collection($this->registeredComponents))->reverse()->unique(function (Component $component) {
-            return $component->getTag();
-        })->reverse()->values()->all();
-    }
-
-    /**
-     * @param string $viewDirectory
+     * Register a class-based component alias directive.
      *
-     * @return \Netflie\Componentes\ComponentCollection|\Netflie\Componentes\Component[]
+     * @param  string  $class
+     * @param  string|null  $alias
+     * @param  string  $prefix
+     * @return void
      */
-    public function registerComponents(string $viewDirectory): ComponentCollection
+    public function component($class, $alias = null, $prefix = '')
     {
-        if (!Str::endsWith($viewDirectory, '*')) {
-            throw new \Exception("View directory \"$viewDirectory\" without wildcard");
-        }
-
-        $includeSubdirectories = Str::endsWith($viewDirectory, '**.*');
-
-        $componentDirectory = new Directory($viewDirectory, $includeSubdirectories, $this->getFilesystem());
-
-        return $this->registerViews(
-            ComponentCollection::make($componentDirectory->getFiles())
-                ->map(function (SplFileInfo $file) use ($componentDirectory) {
-                    return (View::createFromFile($file, $componentDirectory))->getName();
-                })
-        );
+        $this->app['blade.compiler']->component($class, $alias, $prefix);
     }
 
-    public function getFilesystem()
+    /**
+     * Register an array of class-based components.
+     *
+     * @param  array  $components
+     * @param  string  $prefix
+     * @return void
+     */
+    public function components(array $components, $prefix = '')
     {
-        if (!$this->filesystem instanceof Filesystem) {
-            $this->filesystem = new Filesystem;
-        }
-
-        return $this->filesystem;
+        $this->app['blade.compiler']->components($components, $prefix);
     }
 
-    public function setFilesystem(Filesystem $filesystem)
+    public function render(string $content)
     {
-        $this->filesystem = $filesystem;
-    }
+        $viewFactory = $this->app->make(ViewFactoryContract::class);
 
-    private function registerViews(iterable $views): ComponentCollection
-    {
-        return ComponentCollection::make($views)->map(function (string $viewName) {
-            return $this->component($viewName);
-        });
-    }
+        $viewName = sha1($content);
+        $viewPath = $this->app->config['view.compiled'] . '/' . $viewName . '.blade.php';
 
-    private function viewExists($view): bool
-    {
-        $viewDirectory = Str::before($view, '.');
-        $viewDirectory = str_replace('.', '/', $viewDirectory);
+        $this->app->files->replace($viewPath, $content);
 
-        $componentDirectory = new Directory($viewDirectory, false, $this->getFilesystem());
+        $view = $viewFactory->make($viewName);
 
-        return View::createFromViewName($view, $componentDirectory) instanceof View;
+        return $view->render();
     }
 }
