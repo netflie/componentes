@@ -2,113 +2,49 @@
 
 namespace Netflie\Componentes\Tests;
 
-use PHPUnit\Framework\TestCase;
-use Netflie\Componentes\Component;
 use Netflie\Componentes\Componentes;
-use Netflie\Componentes\Filesystem\Filesystem;
+use PHPUnit\Framework\TestCase;
 
 class ComponentesTest extends TestCase
 {
-    public function testRegisterComponentWithTag()
+    private static $componentes;
+
+    public static function setUpBeforeClass(): void
     {
-        $componentes = new Componentes;
-        $componentes->setFilesystem($this->getFilesystem());
-
-        $registeredComponent = $componentes->component('components.myElement', 'my-tag');
-
-        $this->assertEquals(new Component('components.myElement', 'my-tag'), $registeredComponent);
-        $this->assertEquals([new Component('components.myElement', 'my-tag')], $componentes->registeredComponents());
+        static::$componentes = Componentes::create(
+            __DIR__ . '/../views/'
+        );
     }
 
-    public function testRegisterComponentWithoutTemplate()
+    public function test_components_with_anonymous_component()
     {
-        $componentes = new Componentes;
-        $componentes->setFilesystem($this->getFilesystem());
 
-        $this->expectException(\Exception::class);
-        $registeredComponent = $componentes->component('components.myFakeComponent');
+        $html = '<html><x-alert type="error" message="Hi there!"/></html>';
+
+        $compiled = static::$componentes->render($html);
+
+        $this->assertEquals(
+            '<html> <div class="alert alert-error">Hi there!</div> </html>',
+            $compiled
+        );
     }
 
-    public function testRegisterComponentWithoutTag()
+    public function test_componentes_with_nested_components()
     {
-        $componentes = new Componentes;
-        $componentes->setFilesystem($this->getFilesystem());
-        $registeredComponent = $componentes->component('components.myElement');
+        $html = '<html>'
+                  .'<x-grid.row>'
+                    .'<x-grid.column>'
+                      .'<x-grid.row>Hi Componentes!</x-grid.row>'
+                    .'</x-grid.column>'
+                  .'</x-grid.row>'
+              .'</html>';
 
-        $this->assertEquals(new Component('components.myElement'), $registeredComponent);
-        $this->assertEquals([new Component('components.myElement')], $componentes->registeredComponents());
-    }
 
-    public function testRegisterComponentFromADirectory()
-    {
-        $componentes = new Componentes;
-        $componentes->setFilesystem($this->getFilesystem());
-        $registeredComponent = $componentes->component('components.*');
+        $compiled = static::$componentes->render($html);
 
-        $this->assertNull($registeredComponent);
-        $this->assertNotEmpty($componentes->registeredComponents());
-        $this->assertEquals([new Component('components.myElement')], $componentes->registeredComponents());
-    }
-
-    public function testRegisterComponentWithSubdirectories()
-    {
-        $componentes = new Componentes;
-        $componentes->setFilesystem($this->getFilesystem());
-        $registeredComponent = $componentes->component('components.**.*');
-
-        $this->assertNull($registeredComponent);
-        $this->assertNotEmpty($componentes->registeredComponents());
-        $this->assertEquals([
-            new Component('components.alerts.myAlert'),
-            new Component('components.myElement'),
-        ], $componentes->registeredComponents());
-    }
-
-    public function testRegisterComponentFromAComponentSubDirectory()
-    {
-        $componentes = new Componentes;
-        $componentes->setFilesystem($this->getFilesystem());
-        $registeredComponent = $componentes->component('components.alerts.myAlert');
-
-        $this->assertNotEmpty($componentes->registeredComponents());
-
-        $this->assertEquals(new Component('components.alerts.myAlert'), $registeredComponent);
-        $this->assertEquals([new Component('components.alerts.myAlert')], $componentes->registeredComponents());
-    }
-
-    public function testRegisterArrayOfComponents()
-    {
-        $componentes = new Componentes;
-        $componentes->setFilesystem($this->getFilesystem());
-        $registeredComponent = $componentes->component([
-            'components.alerts.myAlert',
-            'components.myElement',
-        ]);
-
-        $this->assertNull($registeredComponent);
-        $this->assertNotEmpty($componentes->registeredComponents());
-        $this->assertEquals([
-            new Component('components.alerts.myAlert'),
-            new Component('components.myElement'),
-        ], $componentes->registeredComponents());
-    }
-
-    public function testRegisterComponentFromAComponentInstance()
-    {
-        $componentes = new Componentes;
-        $componentes->setFilesystem($this->getFilesystem());
-        $component = new Component('components.myElement');
-
-        $registeredComponent = $componentes->component($component);
-
-        $this->assertEquals($registeredComponent, $component);
-        $this->assertEquals([$registeredComponent], $componentes->registeredComponents());
-    }
-
-    protected function getFilesystem(): Filesystem
-    {
-        $viewsFilesystemPath = realpath(__DIR__.'/../views');
-
-        return new Filesystem($viewsFilesystemPath);
+        $this->assertEquals(
+            '<html> <div class="row"><div class="column"><div class="row">Hi Componentes!</div></div></div> </html>',
+            $compiled
+        );
     }
 }
