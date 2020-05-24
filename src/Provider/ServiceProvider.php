@@ -8,7 +8,7 @@ use Illuminate\Contracts\View\Factory as ViewFactoryContract;
 class ServiceProvider
 {
     /**
-     * @var Illuminate\Contracts\Container\Container
+     * @var \Illuminate\Contracts\Container\Container
      */
     protected $app;
 

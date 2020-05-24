@@ -10,7 +10,7 @@ use Netflie\Componentes\Provider\ServiceProvider;
 class Componentes
 {
     /**
-     * @var Illuminate\Container\Container
+     * @var \Illuminate\Container\Container
      */
     protected $app;
 
